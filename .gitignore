@@ -1,0 +1,11 @@
+ising_parallel
+ising_parallel_debug
+ising_parallel_tsan
+ising_parallel_prof
+gmon.out
+*.o
+binder_L*.csv
+binder.gp
+ising_*.bmp
+ising_*.mp4
+*.tar.gz

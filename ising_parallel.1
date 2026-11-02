@@ -1,0 +1,214 @@
+.TH ISING_PARALLEL 1 "November 2026" "ising_parallel 2.1.1" "User Commands"
+.SH NAME
+ising_parallel \- multithreaded Monte Carlo simulation of the 2-D Ising and
+q-state Potts models with live SDL2 visualisation
+.SH SYNOPSIS
+.B ising_parallel
+.RI [ options ]
+.br
+.B ising_parallel \-\-batch
+.RI [ options ]
+.SH DESCRIPTION
+.B ising_parallel
+simulates the two-dimensional ferromagnetic Ising model and the q-state Potts
+model on an
+.IR L \(mu L
+square lattice with periodic boundary conditions, using either the
+Metropolis single-site algorithm (parallelised over all cores with a
+two-colour checkerboard decomposition) or the Wolff single-cluster algorithm.
+.PP
+Without
+.BR \-\-batch ,
+an SDL2 window shows the spin configuration on the left and a live panel on
+the right with temperature, the order parameter
+.IR m ,
+energy per spin
+.IR e ,
+susceptibility \(*x, specific heat
+.IR C\s-2v\s+2 ,
+jackknife error bars, the Binder cumulant, the integrated autocorrelation time \(*t of
+.IR m ,
+exact Onsager reference values (Ising), history plots and a key legend.
+.PP
+With
+.BR \-\-batch
+no window is opened: the program thermalises, measures for the requested
+number of sweeps, prints one line of results (optionally CSV) and exits.
+.PP
+Units are
+.IR J " = " k\s-2B\s+2 " = 1;"
+temperatures are in units of
+.IR J / k\s-2B\s+2 .
+The exact critical temperatures are
+.IR T\s-2c\s+2 " = 2/ln(1+\(sr2) \(~~ 2.26919"
+for the Ising model and
+.IR T\s-2c\s+2 " = 1/ln(1+\(srq)"
+for the q-state Potts model.
+.SH OPTIONS
+.TP
+.BI \-L\ N ", " \-\-size= N
+Lattice side length (even, default 512).
+.TP
+.BI \-j\ N ", " \-\-threads= N
+Number of worker threads (default: number of online CPUs). The main thread
+is one of the workers; do not exceed the number of physical cores.
+.TP
+.BI \-m\ NAME ", " \-\-model= NAME
+.B ising
+(default) or
+.BR potts .
+.TP
+.BI \-q\ Q ", " \-\-states= Q
+Number of Potts states, 2..16 (default 3). Ignored for the Ising model.
+.TP
+.BI \-T\ T ", " \-\-temp= T
+Temperature. Default: 1.5
+.I T\s-2c\s+2
+in the GUI,
+.I T\s-2c\s+2
+in batch mode.
+.TP
+.BR \-w ", " \-\-wolff
+Use the Wolff cluster algorithm instead of Metropolis.
+.TP
+.BI \-s\ S ", " \-\-seed= S
+RNG seed (64-bit, decimal or 0x-hex). Default: derived from time and PID.
+Runs with the same seed, lattice size and thread count are bit-reproducible.
+.TP
+.BR \-b ", " \-\-batch
+Headless mode.
+.TP
+.BI \-n\ N ", " \-\-sweeps= N
+Measurement sweeps in batch mode (default 10000).
+.TP
+.BI \-t\ N ", " \-\-therm= N
+Thermalisation sweeps before measuring in batch mode (default 1000).
+.TP
+.BI \-\-scan\  A:B:K
+Batch mode: run
+.I K
+temperatures from
+.I A
+to
+.I B
+inclusive, carrying the configuration from one temperature to the next.
+.TP
+.B \-\-csv
+Batch mode: comma-separated output with a header line.
+.TP
+.BI \-\-frames\  N
+GUI: exit after
+.I N
+frames (for benchmarking and testing).
+.TP
+.BR \-h ", " \-\-help
+Print usage.
+.TP
+.BR \-V ", " \-\-version
+Print version.
+.SH KEYS
+.TP
+.B scroll wheel, Up, Down
+Temperature by
+.IR T\s-2c\s+2 /50 .
+Hold Shift for steps of
+.IR T\s-2c\s+2 /500 .
+.TP
+.B + / \-
+Sweeps per frame (1..200).
+.TP
+.B W
+Toggle Wolff / Metropolis.
+.TP
+.B M
+Toggle Ising / Potts (lattice re-randomised,
+.I T/T\s-2c\s+2
+preserved).
+.TP
+.B [ / ]
+Decrease / increase Potts
+.IR q .
+.TP
+.B C
+Cycle colour mode: spin; spins tinted by the owning thread (shows the row-band decomposition); local energy.
+.TP
+.B Space
+Pause.
+.TP
+.B H / K
+Hot (random) / cold (aligned) start.
+.TP
+.B R
+Reset statistics window.
+.TP
+.B P
+Save a screenshot
+.RI ( ising_YYYYmmdd_HHMMSS.bmp ).
+.TP
+.B V
+Start/stop MP4 recording through an
+.BR ffmpeg (1)
+pipe.
+.TP
+.B Q, Esc
+Quit.
+.SH BATCH OUTPUT
+One line per temperature with the columns
+.IR "model, q, L, threads, alg, T, Tc, sweeps, m, m_err, e, e_err, chi, chi_err, cv, cv_err, U, U_err, tau_m, m_exact, e_exact, avg_cluster, secs, sweeps_per_s" .
+.I U
+is the Binder cumulant 1 \- <m^4>/(3<m^2>^2), whose curves for different
+.I L
+cross at
+.IR T\s-2c\s+2
+(at 0.6107 for the 2-D Ising model); the accompanying
+.B binder.sh
+script automates the scan.
+Errors are jackknife estimates over 20 blocks;
+.I tau_m
+is the integrated autocorrelation time of
+.I m
+in sweeps, estimated from the blocking ratio.
+.I m_exact
+and
+.I e_exact
+are the Onsager infinite-lattice values (Ising only; NaN for Potts).
+Finite lattices show systematic shifts near
+.IR T\s-2c\s+2 ,
+of order
+.IR 1/L
+in the Ising energy.
+.SH ENVIRONMENT
+.TP
+.B ISING_FONT
+Path to a TrueType font for the panel. Otherwise common DejaVu, Liberation,
+Ubuntu and macOS system fonts are tried; without a font the simulation runs
+with the panel text disabled.
+.SH EXAMPLES
+Interactive Potts model with 5 states on a 1024\(mu1024 lattice, 8 threads:
+.PP
+.RS
+ising_parallel \-m potts \-q 5 \-L 1024 \-j 8
+.RE
+.PP
+Check the Ising magnetisation at T = 2.0 against the exact value:
+.PP
+.RS
+ising_parallel \-\-batch \-L 64 \-T 2.0 \-n 20000
+.RE
+.PP
+Susceptibility scan through the 3-state Potts transition as CSV:
+.PP
+.RS
+ising_parallel \-\-batch \-m potts \-q 3 \-L 128 \-w \-\-scan 0.90:1.10:21 \-\-csv > scan.csv
+.RE
+.SH EXIT STATUS
+0 on success, 1 on a runtime error (no display, out of memory), 2 on a
+command-line error.
+.SH SEE ALSO
+.BR ffmpeg (1)
+.PP
+L. Onsager, Phys. Rev. 65, 117 (1944).
+U. Wolff, Phys. Rev. Lett. 62, 361 (1989).
+F. Y. Wu, Rev. Mod. Phys. 54, 235 (1982).
+.SH AUTHOR
+Mico Mrkaic.
